@@ -211,10 +211,9 @@ def interpret_args(args, dash_dash, default_commit):
         object_type = get_object_type(commit)
         if object_type not in ('commit', 'tag'):
             if object_type is None:
-                die("'%s' is not a commit" % commit)
+                die(f"'{commit}' is not a commit")
             else:
-                die("'%s' is a %s, but a commit was expected" %
-                    (commit, object_type))
+                die(f"'{commit}' is a {object_type}, but a commit was expected")
         files = dash_dash[1:]
     elif args:
         if disambiguate_revision(args[0]):
@@ -239,8 +238,7 @@ def disambiguate_revision(value):
         return False
     if object_type in ('commit', 'tag'):
         return True
-    die('`%s` is a %s, but a commit or filename was expected' %
-        (value, object_type))
+    die(f'`{value}` is a {object_type}, but a commit or filename was expected')
 
 
 def get_object_type(value):
@@ -252,9 +250,7 @@ def get_object_type(value):
                          stderr=subprocess.PIPE,
                          encoding='utf8')
     stdout, stderr = p.communicate()
-    if p.returncode != 0:
-        return None
-    return stdout.strip()
+    return None if p.returncode != 0 else stdout.strip()
 
 
 def compute_diff_and_extract_lines(commit, files):
@@ -296,16 +292,14 @@ def extract_lines(patch_file):
     list of line `Range`s."""
     matches = {}
     for line in patch_file:
-        match = re.search(r'^\+\+\+\ [^/]+/(.*)', line)
-        if match:
-            filename = match.group(1).rstrip('\r\n')
-        match = re.search(r'^@@ -[0-9,]+ \+(\d+)(,(\d+))?', line)
-        if match:
-            start_line = int(match.group(1))
+        if match := re.search(r'^\+\+\+\ [^/]+/(.*)', line):
+            filename = match[1].rstrip('\r\n')
+        if match := re.search(r'^@@ -[0-9,]+ \+(\d+)(,(\d+))?', line):
             line_count = 1
-            if match.group(3):
-                line_count = int(match.group(3))
+            if match[3]:
+                line_count = int(match[3])
             if line_count > 0:
+                start_line = int(match[1])
                 matches.setdefault(filename, []).append(
                     Range(start_line, line_count))
     return matches
@@ -377,9 +371,8 @@ def create_tree(input_lines, mode):
             p.stdin.write('%s\0' % line)
         p.stdin.close()
         if p.wait() != 0:
-            die('`%s` failed' % ' '.join(cmd))
-        tree_id = run('git', 'write-tree')
-        return tree_id
+            die(f"`{' '.join(cmd)}` failed")
+        return run('git', 'write-tree')
 
 
 def clang_format_to_blob(filename, line_ranges, binary='clang-format',
@@ -389,10 +382,13 @@ def clang_format_to_blob(filename, line_ranges, binary='clang-format',
     Returns the object ID (SHA-1) of the created blob."""
     clang_format_cmd = [binary, filename]
     if style:
-        clang_format_cmd.extend(['-style=' + style])
-    clang_format_cmd.extend([
-        '-lines=%s:%s' % (start_line, start_line + line_count - 1)
-        for start_line, line_count in line_ranges])
+        clang_format_cmd.extend([f'-style={style}'])
+    clang_format_cmd.extend(
+        [
+            f'-lines={start_line}:{start_line + line_count - 1}'
+            for start_line, line_count in line_ranges
+        ]
+    )
     try:
         clang_format = subprocess.Popen(clang_format_cmd,
                                         stdin=subprocess.PIPE,
@@ -400,12 +396,11 @@ def clang_format_to_blob(filename, line_ranges, binary='clang-format',
                                         encoding='utf8')
     except OSError as e:
         if e.errno == errno.ENOENT:
-            die('cannot find executable "%s"' % binary)
+            die(f'cannot find executable "{binary}"')
         else:
             raise
     clang_format.stdin.close()
-    hash_object_cmd = ['git', 'hash-object',
-                       '-w', '--path=' + filename, '--stdin']
+    hash_object_cmd = ['git', 'hash-object', '-w', f'--path={filename}', '--stdin']
     hash_object = subprocess.Popen(hash_object_cmd,
                                    stdin=clang_format.stdout,
                                    stdout=subprocess.PIPE,
@@ -413,9 +408,9 @@ def clang_format_to_blob(filename, line_ranges, binary='clang-format',
     clang_format.stdout.close()
     stdout = hash_object.communicate()[0]
     if hash_object.returncode != 0:
-        die('`%s` failed' % ' '.join(hash_object_cmd))
+        die(f"`{' '.join(hash_object_cmd)}` failed")
     if clang_format.wait() != 0:
-        die('`%s` failed' % ' '.join(clang_format_cmd))
+        die(f"`{' '.join(clang_format_cmd)}` failed")
     return stdout.rstrip('\r\n')
 
 
@@ -445,7 +440,7 @@ def create_temporary_index(tree=None):
     path = os.path.join(gitdir, temp_index_basename)
     if tree is None:
         tree = '--empty'
-    run('git', 'read-tree', '--index-output=' + path, tree)
+    run('git', 'read-tree', f'--index-output={path}', tree)
     return path
 
 
@@ -465,9 +460,9 @@ def apply_changes(old_tree, new_tree, force=False, patch_mode=False):
     changed_files = run('git', 'diff-tree', '-r', '-z', '--name-only', old_tree,
                         new_tree).rstrip('\0').split('\0')
     if not force:
-        unstaged_files = run('git', 'diff-files',
-                             '--name-status', *changed_files)
-        if unstaged_files:
+        if unstaged_files := run(
+            'git', 'diff-files', '--name-status', *changed_files
+        ):
             print('The following files would be modified but '
                                  'have unstaged changes:', file=sys.stderr)
             print(unstaged_files, file=sys.stderr)
@@ -494,20 +489,20 @@ def run(*args, **kwargs):
     verbose = kwargs.pop('verbose', True)
     strip = kwargs.pop('strip', True)
     for name in kwargs:
-        raise TypeError("run() got an unexpected keyword argument '%s'" % name)
+        raise TypeError(f"run() got an unexpected keyword argument '{name}'")
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                          stdin=subprocess.PIPE, encoding='utf8')
     stdout, stderr = p.communicate(input=stdin)
     if p.returncode == 0:
         if stderr:
             if verbose:
-                print('`%s` printed to stderr:' % ' '.join(args), file=sys.stderr)
+                print(f"`{' '.join(args)}` printed to stderr:", file=sys.stderr)
             print(stderr.rstrip(), file=sys.stderr)
         if strip:
             stdout = stdout.rstrip('\r\n')
         return stdout
     if verbose:
-        print('`%s` returned %s' % (' '.join(args), p.returncode), file=sys.stderr)
+        print(f"`{' '.join(args)}` returned {p.returncode}", file=sys.stderr)
     if stderr:
         print(stderr.rstrip(), file=sys.stderr)
     sys.exit(2)

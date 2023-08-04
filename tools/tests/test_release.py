@@ -55,38 +55,35 @@ windows_expected_libraries = [
 
 
 class ReleaseTests(unittest.TestCase):
-    @unittest.skipUnless(
-        utils.platform() == "linux" or utils.platform() == "darwin",
-        "Test for Darwin and Linux only",
-    )
+    @unittest.skipUnless(utils.platform() in ["linux", "darwin"], "Test for Darwin and Linux only")
     def test_no_nonsystem_link(self):
 
         if utils.platform() == "linux":
             proc = subprocess.call(
-                "ldd %s | awk '{ print $1\" \"$3 }' | grep -Ev '^/lib64|^/lib| /lib|linux-vdso.so.1'"
-                % (BUILD_DIR + "/osquery/osqueryd"),
+                (
+                    "ldd %s | awk '{ print $1\" \"$3 }' | grep -Ev '^/lib64|^/lib| /lib|linux-vdso.so.1'"
+                    % f"{BUILD_DIR}/osquery/osqueryd"
+                ),
                 shell=True,
             )
         else:
             proc = subprocess.call(
-                "otool -L %s | awk '{ if (NR > 1) print $1}' | grep -Ev '^/usr/lib|^/System/Library'"
-                % (BUILD_DIR + "/osquery/osqueryd"),
+                (
+                    "otool -L %s | awk '{ if (NR > 1) print $1}' | grep -Ev '^/usr/lib|^/System/Library'"
+                    % f"{BUILD_DIR}/osquery/osqueryd"
+                ),
                 shell=True,
             )
 
         # Require all libraries to be system libraries.
         self.assertEqual(proc, 1)
 
-    @unittest.skipUnless(
-        utils.platform() == "linux" or utils.platform() == "win32",
-        "Test for Windows and Linux only",
-    )
+    @unittest.skipUnless(utils.platform() in ["linux", "win32"], "Test for Windows and Linux only")
     def test_linked_system_libraries(self):
 
         if utils.platform() == "linux":
             output_bytes = subprocess.check_output(
-                "ldd %s | awk '{ print $1 }'"
-                % (BUILD_DIR + "/osquery/osqueryd"),
+                ("ldd %s | awk '{ print $1 }'" % f"{BUILD_DIR}/osquery/osqueryd"),
                 shell=True,
             )
 
@@ -112,19 +109,18 @@ class ReleaseTests(unittest.TestCase):
                 self.assertGreaterEqual(
                     found_index,
                     0,
-                    msg="Missing expected library %s" % expected_library,
+                    msg=f"Missing expected library {expected_library}",
                 )
                 libraries.pop(found_index)
 
-            if len(libraries) > 0:
+            if libraries:
                 self.fail(
                     "Found these additional unwanted libraries linked:\n%s"
                     % ("\n".join(libraries))
                 )
         elif utils.platform() == "win32":
             output_bytes = subprocess.check_output(
-                "dumpbin /DEPENDENTS %s"
-                % (BUILD_DIR + "/osquery/osqueryd.exe"),
+                f"dumpbin /DEPENDENTS {BUILD_DIR}/osquery/osqueryd.exe"
             )
 
             self.assertTrue(output_bytes)
@@ -148,11 +144,11 @@ class ReleaseTests(unittest.TestCase):
                 self.assertGreaterEqual(
                     found_index,
                     0,
-                    msg="Missing expected library %s" % expected_library,
+                    msg=f"Missing expected library {expected_library}",
                 )
                 libraries.pop(found_index)
 
-            if len(libraries) > 0:
+            if libraries:
                 self.fail(
                     "Found these additional unwanted libraries linked:\n%s"
                     % ("\n".join(libraries))

@@ -228,9 +228,9 @@ class OsquerydTest(unittest.TestCase):
         cleanOsqueryServices()
 
         self.test_instance = random.randint(0, 65535)
-        self.tmp_dir = os.path.join(tempfile.gettempdir(),
-                                    'osquery-test-python-{}'.format(
-                                        self.test_instance))
+        self.tmp_dir = os.path.join(
+            tempfile.gettempdir(), f'osquery-test-python-{self.test_instance}'
+        )
         self.bin_path = findOsquerydBinary()
 
         if os.path.exists(self.tmp_dir):
@@ -240,8 +240,9 @@ class OsquerydTest(unittest.TestCase):
 
         self.pidfile = os.path.join(self.tmp_dir, 'osquery.pidfile')
         self.log_path = os.path.join(self.tmp_dir, 'log')
-        self.database_path = os.path.join(self.tmp_dir, 'osquery.{}.db'.format(
-            self.test_instance))
+        self.database_path = os.path.join(
+            self.tmp_dir, f'osquery.{self.test_instance}.db'
+        )
         self.config_path = os.path.join(self.tmp_dir, 'osquery.conf')
         self.flagfile = os.path.join(self.tmp_dir, 'osquery.flags')
 
@@ -282,7 +283,7 @@ class OsquerydTest(unittest.TestCase):
             return ('', '')
 
     def test_install_run_stop_uninstall_windows_service(self):
-        name = 'osqueryd_test_{}'.format(self.test_instance)
+        name = f'osqueryd_test_{self.test_instance}'
         code, _ = installService(name, self.bin_path)
         self.assertEqual(code, 0)
         self.service_list_.append(name)
@@ -324,7 +325,7 @@ class OsquerydTest(unittest.TestCase):
 
     def test_thrash_windows_service(self):
         # Install the service
-        name = 'osqueryd_test_{}'.format(self.test_instance)
+        name = f'osqueryd_test_{self.test_instance}'
         code, _ = installService(name, self.bin_path)
         self.assertEqual(code, 0)
         self.service_list_.append(name)

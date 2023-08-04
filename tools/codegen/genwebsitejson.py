@@ -64,17 +64,14 @@ def platform_for_spec(path):
 
 def remove_prefix(text, prefix):
     # python 3.9 has `removeprefix`, but I don't want to add that requirement.
-    if text.startswith(prefix):
-        return text[len(prefix):]
-    return text
+    return text[len(prefix):] if text.startswith(prefix) else text
 
 def url_for_spec(specs_dir, path):
     """Given a path to a table specification, return the URL that would take you
     to the specification on GitHub.
     """
     path_fragment = remove_prefix(path, specs_dir).lstrip("/ ")
-    url = os.path.join(BASE_SOURCE_URL, "specs", path_fragment)
-    return url
+    return os.path.join(BASE_SOURCE_URL, "specs", path_fragment)
 
 def generate_table_metadata(specs_dir, full_path):
     """This function generates a dictionary of table metadata for a spec file
@@ -89,10 +86,11 @@ def generate_table_metadata(specs_dir, full_path):
 
         # Now that the `table` variable is accessible, we can access attributes
         # of the table
-        t = {}
-        t["name"] = table.table_name
-        t["description"] = table.description
-        t["url"] = url_for_spec(specs_dir, full_path)
+        t = {
+            "name": table.table_name,
+            "description": table.description,
+            "url": url_for_spec(specs_dir, full_path),
+        }
         t["platforms"] = platform_for_spec(full_path)
         t["evented"] = "event_subscriber" in table.attributes
         t["cacheable"] = "cacheable" in table.attributes
@@ -103,12 +101,12 @@ def generate_table_metadata(specs_dir, full_path):
         # about each column
         t["columns"] = []
         for col in table.columns():
-            c = {}
-            c["name"] = col.name
-            c["description"] = col.description
-            c["type"] = col.type.affinity.replace("_TYPE", "").lower()
-            c["notes"] = col.notes
-
+            c = {
+                "name": col.name,
+                "description": col.description,
+                "type": col.type.affinity.replace("_TYPE", "").lower(),
+                "notes": col.notes,
+            }
             c["hidden"] = col.options.get("hidden", False)
             c["required"] = col.options.get("required", False)
             c["index"] = col.options.get("index", False)

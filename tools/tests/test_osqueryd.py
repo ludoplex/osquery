@@ -226,9 +226,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         info_path = os.path.join(logger_path, "osqueryd.INFO")
 
         def pathDoesntExist():
-            if os.path.exists(info_path):
-                return False
-            return True
+            return not os.path.exists(info_path)
 
         self.assertTrue(daemon.isAlive())
         self.assertTrue(pathDoesntExist())

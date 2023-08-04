@@ -20,7 +20,7 @@ import utils
 class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
     @test_base.flaky
     def test_query_packs(self):
-        query_pack_path = test_base.CONFIG_DIR + "/test_pack.conf"
+        query_pack_path = f"{test_base.CONFIG_DIR}/test_pack.conf"
         utils.write_config({
             "queries": {
                 "simple_test": {
@@ -58,6 +58,7 @@ class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
         def get_packs():
             result = em.query("select * from osquery_packs")
             return len(result.response) == 2
+
         # Allow the daemon some lag to parse the pack content.
         test_base.expectTrue(get_packs)
         result = em.query("select * from osquery_packs")

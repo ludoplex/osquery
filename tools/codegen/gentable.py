@@ -148,7 +148,7 @@ def setup_templates(templates_path):
         templates_path = os.path.join(
             os.path.dirname(tables_path), "templates")
         if not os.path.exists(templates_path):
-            print("Cannot read templates path: %s" % (templates_path))
+            print(f"Cannot read templates path: {templates_path}")
             exit(1)
     templates = (f for f in os.listdir(templates_path) if fnmatch.fnmatch(f, "*.in"))
     for template in templates:
@@ -166,11 +166,10 @@ class Singleton(object):
 
     _instance = None
 
-    def __new__(self, *args, **kwargs):
-        if not self._instance:
-            self._instance = super(Singleton, self).__new__(
-                self, *args, **kwargs)
-        return self._instance
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
 
 
 class TableState(Singleton):
@@ -215,16 +214,18 @@ class TableState(Singleton):
             for option in column.options:
                 # Only allow explicitly-defined options.
                 if option in COLUMN_OPTIONS:
-                    column_options.append("ColumnOptions::" + COLUMN_OPTIONS[option])
+                    column_options.append(f"ColumnOptions::{COLUMN_OPTIONS[option]}")
                     all_options.append(COLUMN_OPTIONS[option])
                 else:
-                    print(yellow(
-                        "Table %s column %s contains an unknown option: %s" % (
-                            self.table_name, column.name, option)))
+                    print(
+                        yellow(
+                            f"Table {self.table_name} column {column.name} contains an unknown option: {option}"
+                        )
+                    )
             column.options_set = " | ".join(column_options)
             if len(column.aliases) > 0:
                 self.has_column_aliases = True
-        if len(all_options) > 0:
+        if all_options:
             self.has_options = True
         if "event_subscriber" in self.attributes:
             self.generator = True
@@ -232,11 +233,14 @@ class TableState(Singleton):
             self.strongly_typed_rows = True
         if "cacheable" in self.attributes:
             if self.generator:
-                print(lightred(
-                    "Table cannot use a generator and be marked cacheable: %s" % (path)))
+                print(
+                    lightred(
+                        f"Table cannot use a generator and be marked cacheable: {path}"
+                    )
+                )
                 exit(1)
         if self.table_name == "" or self.function == "":
-            print(lightred("Invalid table spec: %s" % (path)))
+            print(lightred(f"Invalid table spec: {path}"))
             exit(1)
 
         # Check for reserved column names
@@ -249,16 +253,14 @@ class TableState(Singleton):
 
         path_bits = path.split("/")
         for i in range(1, len(path_bits)):
-            dir_path = ""
-            for j in range(i):
-                dir_path += "%s/" % path_bits[j]
+            dir_path = "".join(f"{path_bits[j]}/" for j in range(i))
             if not os.path.exists(dir_path):
                 try:
                     os.mkdir(dir_path)
                 except:
                     # May encounter a race when using a make jobserver.
                     pass
-        logging.debug("generating %s" % path)
+        logging.debug(f"generating {path}")
         self.impl_content = templite.Templite(TEMPLATES[template]).render(
             table_name=self.table_name,
             table_name_cc=to_camel_case(self.table_name),
@@ -282,8 +284,8 @@ class TableState(Singleton):
             file_h.write(self.impl_content)
 
     def denylist(self, path):
-        print(lightred("Denylisting generated %s" % path))
-        logging.debug("denylisting %s" % path)
+        print(lightred(f"Denylisting generated {path}"))
+        logging.debug(f"denylisting {path}")
         self.generate(path, template="denylist")
 
 table = TableState()
@@ -322,7 +324,7 @@ class ForeignKey(object):
 def table_name(name, aliases=[]):
     """define the virtual table name"""
     logging.debug("- table_name")
-    logging.debug("  - called with: %s" % name)
+    logging.debug(f"  - called with: {name}")
     table.table_name = name
     table.description = ""
     table.attributes = {}
@@ -339,9 +341,9 @@ def schema(schema_list):
     logging.debug("- schema")
     for it in schema_list:
         if isinstance(it, Column):
-            logging.debug("  - column: %s (%s)" % (it.name, it.type))
+            logging.debug(f"  - column: {it.name} ({it.type})")
         if isinstance(it, ForeignKey):
-            logging.debug("  - foreign_key: %s (%s)" % (it.column, it.table))
+            logging.debug(f"  - foreign_key: {it.column} ({it.table})")
     table.schema = schema_list
 
 
@@ -352,9 +354,9 @@ def extended_schema(platforms, schema_list):
     logging.debug("- extended schema")
     for it in schema_list:
         if isinstance(it, Column):
-            logging.debug("  - column: %s (%s)" % (it.name, it.type))
+            logging.debug(f"  - column: {it.name} ({it.type})")
             it.platforms = platforms
-            if not PLATFORM in platforms:
+            if PLATFORM not in platforms:
                 it.options['hidden'] = True
             table.schema.append(it)
 
@@ -369,7 +371,7 @@ def description(text):
 def select_all(name=None):
     if name is None:
         name = table.table_name
-    return "select count(*) from %s;" % (name)
+    return f"select count(*) from {name};"
 
 
 def examples(example_queries):
@@ -400,10 +402,10 @@ def implementation(impl_string, generator=False):
     class_parts = function.split("::")[::-1]
     function = class_parts[0]
     class_name = class_parts[1] if len(class_parts) > 1 else ""
-    impl = "%s.cpp" % filename
-    logging.debug("  - impl => %s" % impl)
-    logging.debug("  - function => %s" % function)
-    logging.debug("  - class_name => %s" % class_name)
+    impl = f"{filename}.cpp"
+    logging.debug(f"  - impl => {impl}")
+    logging.debug(f"  - function => {function}")
+    logging.debug(f"  - class_name => {class_name}")
     table.impl = impl
     table.function = function
     table.class_name = class_name
@@ -414,19 +416,20 @@ def implementation(impl_string, generator=False):
         if not table.table_name.endswith("_events"):
             print(lightred("Event subscriber must use a '_events' suffix"))
             sys.exit(1)
-        columns = {}
-        # There is no dictionary comprehension on all supported platforms.
-        for column in table.schema:
-            if isinstance(column, Column):
-                columns[column.name] = column.type
+        columns = {
+            column.name: column.type
+            for column in table.schema
+            if isinstance(column, Column)
+        }
         if "time" not in columns:
-            print(lightred("Event subscriber: %s needs a 'time' column." % (
-                table.table_name)))
+            print(lightred(f"Event subscriber: {table.table_name} needs a 'time' column."))
             sys.exit(1)
         if columns["time"] is not BIGINT:
-            print(lightred(
-                "Event subscriber: %s, 'time' column must be a %s type" % (
-                    table.table_name, BIGINT)))
+            print(
+                lightred(
+                    f"Event subscriber: {table.table_name}, 'time' column must be a {BIGINT} type"
+                )
+            )
             sys.exit(1)
 
 
@@ -443,8 +446,11 @@ def main():
                         help="Generate the header file instead of cpp")
     parser.add_argument("--foreign", default=False, action="store_true",
         help="Generate a foreign table")
-    parser.add_argument("--templates", default=SCRIPT_DIR + "/templates",
-                        help="Path to codegen output .cpp.in templates")
+    parser.add_argument(
+        "--templates",
+        default=f"{SCRIPT_DIR}/templates",
+        help="Path to codegen output .cpp.in templates",
+    )
     parser.add_argument("spec_file", help="Path to input .table spec file")
     parser.add_argument("output", help="Path to output .cpp file")
     args = parser.parse_args()

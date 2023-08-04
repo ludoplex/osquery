@@ -31,8 +31,8 @@ class GithubIssueState(Enum):
 class GithubAPI:
     def __init__(self, source_repo: str, dest_repo: str, github_token: str, debug=False):
         self.github_token_ = github_token
-        self.source_repo_url = "https://api.github.com/repos/%s/issues" % source_repo
-        self.dest_repo_url = "https://api.github.com/repos/%s/issues" % dest_repo
+        self.source_repo_url = f"https://api.github.com/repos/{source_repo}/issues"
+        self.dest_repo_url = f"https://api.github.com/repos/{dest_repo}/issues"
         self.last_request_time = 0
         self.debug = debug
 
@@ -52,16 +52,14 @@ class GithubAPI:
 
         self.last_request_time = time.time_ns()
 
-        response = requests.post(
+        return requests.post(
             url,
             json=data,
             headers={
                 "Accept": "application/vnd.github.v3+json",
-                "Authorization": "token %s" % self.github_token_,
+                "Authorization": f"token {self.github_token_}",
             },
         )
-
-        return response
 
     def makeGetRequest(self, url, params: dict):
         time_passed = (time.time_ns() - self.last_request_time) / (1000 * 1000)
@@ -72,7 +70,7 @@ class GithubAPI:
 
         self.last_request_time = time.time_ns()
 
-        response = requests.get(
+        return requests.get(
             url,
             params=params,
             auth=("Bearer", self.github_token_),
@@ -80,8 +78,6 @@ class GithubAPI:
                 "Accept": "application/vnd.github.v3+json",
             },
         )
-
-        return response
 
     def createIssue(self, title: str, content: str, labels: list):
 
@@ -101,9 +97,7 @@ class GithubAPI:
 
             if response.status_code != 201:
                 self.debugPrint(
-                    f"Request to {self.dest_repo_url} to create issue with title"
-                    f" {data['title']} failed with {response.status_code}, reason:"
-                    f" {response.reason + ' ' + response.text if response.text else response.reason}"
+                    f"Request to {self.dest_repo_url} to create issue with title {data['title']} failed with {response.status_code}, reason: {f'{response.reason} {response.text}' if response.text else response.reason}"
                 )
                 sleep(attempts * 5)
                 continue
@@ -111,8 +105,7 @@ class GithubAPI:
             return response
 
         raise IssueCreationError(
-            "Failed to open issue with status code: %s and reason: %s"
-            % (response.status_code, response.reason)
+            f"Failed to open issue with status code: {response.status_code} and reason: {response.reason}"
         )
 
     def getRecentOpenIssues(
@@ -152,9 +145,7 @@ class GithubAPI:
                 if response.status_code != 200:
 
                     self.debugPrint(
-                        f"Request to {self.source_repo_url} to list issues at page {params['page']}"
-                        f" failed with {response.status_code}, reason:"
-                        f" {response.reason + ' ' + response.text if response.text else response.reason}"
+                        f"Request to {self.source_repo_url} to list issues at page {params['page']} failed with {response.status_code}, reason: {f'{response.reason} {response.text}' if response.text else response.reason}"
                     )
                     attempts += 1
                     sleep(attempts * 5)
@@ -180,7 +171,11 @@ class GithubAPI:
                 break
 
             if attempts == 3:
-                reason = response.reason + " " + response.text if response.text else response.reason
+                reason = (
+                    f"{response.reason} {response.text}"
+                    if response.text
+                    else response.reason
+                )
                 raise IssuesListingError(
                     f"Failed to list issues with status code: {response.status_code}"
                     f" and reason: {reason}"

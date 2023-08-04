@@ -40,9 +40,7 @@ def check(base_commit, exclude_folders, clang_binary):
         return False
 
     if p.returncode:
-        print("{}\n\n{}\n{}".format(
-            "Failed to run formatting script", out, err
-            ))
+        print(f"Failed to run formatting script\n\n{out}\n{err}")
         return False
     elif out.startswith("no modified files to format"):
         print("No code changes found!")
@@ -51,9 +49,7 @@ def check(base_commit, exclude_folders, clang_binary):
         print("Code passes formatting tests!")
         return True
     else:
-        print("{}\n\n{}".format(
-            "Modifications failed code formatting requirements", out
-            ))
+        print(f"Modifications failed code formatting requirements\n\n{out}")
         return False
 
 def get_base_commit(base_branch):
@@ -62,9 +58,9 @@ def get_base_commit(base_branch):
                 ["git", "merge-base", "HEAD", base_branch]
                 ).decode().strip()
     except OSError as e:
-        print("{}\n\n{}".format("Failed to execute git", str(e)))
+        print(f"Failed to execute git\n\n{str(e)}")
     except subprocess.CalledProcessError as e:
-        print("{}\n\n{}".format("Failed to determine merge-base", str(e)))
+        print(f"Failed to determine merge-base\n\n{str(e)}")
 
     return None
 

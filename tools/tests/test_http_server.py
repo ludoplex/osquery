@@ -136,7 +136,7 @@ FILE_CARVE_MAP = {}
 
 def debug(response):
     if ARGS['verbose']:
-        print("-- [DEBUG] %s" % str(response))
+        print(f"-- [DEBUG] {str(response)}")
         sys.stdout.flush()
         sys.stderr.flush()
 
@@ -156,7 +156,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         reset_timeout()
-        debug("RealSimpleHandler::get %s" % self.path)
+        debug(f"RealSimpleHandler::get {self.path}")
         self._set_headers()
         if self.path == '/config':
             self.config(request, node=True)
@@ -165,14 +165,14 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         reset_timeout()
-        debug("RealSimpleHandler::head %s" % self.path)
+        debug(f"RealSimpleHandler::head {self.path}")
         self._set_headers()
         self.send_header('Content-Length', 0)
         self.end_headers()
 
     def do_POST(self):
         reset_timeout()
-        debug("RealSimpleHandler::post %s" % self.path)
+        debug(f"RealSimpleHandler::post {self.path}")
         self._set_headers()
         content_len = int(self.headers.get('content-length', 0))
 
@@ -182,7 +182,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # This contains a base64 encoded block of a file printing to the screen
         # slows down carving and makes scroll back a pain
         if (self.path != "/carve_block"):
-            debug("Request: %s" % str(request))
+            debug(f"Request: {str(request)}")
 
         if self.path == '/enroll':
             self.enroll(request)
@@ -319,19 +319,22 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
         # Check the first four bytes for the zstd header. If not no
         # compression was used, it's an uncompressed .tar
-        if (base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']][
-                'blocks_received'][0])[0:4] == b'\x28\xB5\x2F\xFD'):
+        if (
+            base64.standard_b64decode(
+                FILE_CARVE_MAP[request['session_id']]['blocks_received'][0]
+            )[:4]
+            == b'\x28\xB5\x2F\xFD'
+        ):
             out_file_name += '.zst'
         else:
             out_file_name += '.tar'
-        f = open(out_file_name, 'wb')
-        for x in range(0,
-                       FILE_CARVE_MAP[request['session_id']]['block_count']):
-            f.write(
-                base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]
-                                          ['blocks_received'][x]))
-        f.close()
-        debug("File successfully carved to: %s" % out_file_name)
+        with open(out_file_name, 'wb') as f:
+            for x in range(0,
+                           FILE_CARVE_MAP[request['session_id']]['block_count']):
+                f.write(
+                    base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]
+                                              ['blocks_received'][x]))
+        debug(f"File successfully carved to: {out_file_name}")
         FILE_CARVE_MAP[request['session_id']] = {}
 
     def _push_request(self, command, request):
@@ -341,7 +344,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         RECEIVED_REQUESTS.append(request)
 
     def _reply(self, response):
-        debug("Replying: %s" % (str(response)))
+        debug(f"Replying: {str(response)}")
         response_bytes = json.dumps(response).encode()
 
         if self.protocol_version == "HTTP/1.1":
@@ -378,7 +381,7 @@ def run_http_server(bind_port=80, **kwargs):
             with open(ARGS['enroll_secret'], "r") as fh:
                 HTTP_SERVER_ENROLL_SECRET = fh.read().strip()
         except IOError as e:
-            print("Cannot read --enroll_secret: %s" % str(e))
+            print(f"Cannot read --enroll_secret: {str(e)}")
             exit(1)
 
     reset_timeout()
@@ -463,16 +466,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.cert is None:
-        args.cert = "%s/%s" % (args.test_configs_dir, HTTP_SERVER_CERT)
+        args.cert = f"{args.test_configs_dir}/{HTTP_SERVER_CERT}"
 
     if args.key is None:
-        args.key = "%s/%s" % (args.test_configs_dir, HTTP_SERVER_KEY)
+        args.key = f"{args.test_configs_dir}/{HTTP_SERVER_KEY}"
 
     if args.ca is None:
-        args.ca = "%s/%s" % (args.test_configs_dir, HTTP_SERVER_CA)
+        args.ca = f"{args.test_configs_dir}/{HTTP_SERVER_CA}"
 
     if args.enroll_secret is None:
-        args.enroll_secret =  "%s/%s" % (args.test_configs_dir, HTTP_SERVER_ENROLL_SECRET)
+        args.enroll_secret = f"{args.test_configs_dir}/{HTTP_SERVER_ENROLL_SECRET}"
 
     nonempty_args = {
         k: v

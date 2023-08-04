@@ -45,7 +45,7 @@ libraries_without_version = ["gnulib"]
 
 
 def print_err(message: str):
-    print("Error: " + message, file=sys.stderr)
+    print(f"Error: {message}", file=sys.stderr)
 
 
 def validateManifestFormat(manifest: dict) -> bool:
@@ -96,7 +96,7 @@ def validateLibrariesVersions(
     manifest_is_valid = True
 
     # Remove ignored libraries
-    versions = [v for v in versions if not v[0] in libraries_to_ignore]
+    versions = [v for v in versions if v[0] not in libraries_to_ignore]
 
     # First we search for libraries that are present
     for library_name, current_library_version in versions:
@@ -120,7 +120,7 @@ def validateLibrariesVersions(
             )
 
     # Remove ignored libraries
-    commits = [c for c in commits if not c[0] in libraries_to_ignore]
+    commits = [c for c in commits if c[0] not in libraries_to_ignore]
 
     for library_name, current_library_commit in commits:
 
@@ -150,9 +150,7 @@ def validateLibrariesVersions(
 
     all_detected_libs = set.union(submodule_names, externallibs_names)
 
-    diff = list(manifest_libraries_names - all_detected_libs)
-
-    if len(diff) > 0:
+    if diff := list(manifest_libraries_names - all_detected_libs):
         print("Additional libraries found in the manifest that can be removed:")
         for library_name in diff:
             print(library_name)

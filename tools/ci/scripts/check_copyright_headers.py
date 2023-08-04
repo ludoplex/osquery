@@ -36,20 +36,17 @@ def main():
   for current_path, folder_name_list, file_name_list in os.walk(os.getcwd()):
     current_rel_path = str(pathlib.Path(current_path).relative_to(os.getcwd()))
 
-    skip_folder = False
-    for ignored_folder in ignored_folder_list:
-      if current_rel_path.find(ignored_folder) == 0:
-          skip_folder = True
-          break
-
+    skip_folder = any(
+        current_rel_path.find(ignored_folder) == 0
+        for ignored_folder in ignored_folder_list)
     if skip_folder:
       continue
 
     for file_name in file_name_list:
-      file_path = current_path + "/" + file_name
+      file_path = f"{current_path}/{file_name}"
 
       file_extension = pathlib.Path(file_path).suffix
-      if not file_extension in valid_extension_list:
+      if file_extension not in valid_extension_list:
         continue
 
       with open(file_path, "r") as source_file:
@@ -62,7 +59,7 @@ def main():
       if rel_file_path not in ignored_file_list:
         invalid_file_list.append(file_path)
 
-  if len(invalid_file_list) != 0:
+  if invalid_file_list:
     print("The following source files do not contain the required copyright header:")
 
     for invalid_file in invalid_file_list:

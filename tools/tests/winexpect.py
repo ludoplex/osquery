@@ -53,7 +53,7 @@ class REPLWrapper(object):
             self.child.proc.stdin.flush()
 
             # Wait for stderr/stdout to populate for at most timeout seconds
-            for i in range(self.timeout):
+            for _ in range(self.timeout):
                 if not self.child.out_queue.empty():
                     break
                 time.sleep(1)
@@ -62,7 +62,7 @@ class REPLWrapper(object):
                 res += l
 
         except Exception as e:
-            print('[-] Failed to communicate with client: {}'.format(e))
+            print(f'[-] Failed to communicate with client: {e}')
         return res.encode()
 
 

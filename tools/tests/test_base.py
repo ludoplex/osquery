@@ -84,10 +84,11 @@ else:
     try:
         from pexpect.replwrap import REPLWrapper
     except ImportError as e:
-        print("Could not import pexpect.replwrap: %s" % (str(e)))
-        print("  Need pexpect version 3.3, installed version: %s" %
-              (str(pexpect.__version__)))
-        print("  pexpect location: %s" % (str(pexpect.__file__)))
+        print(f"Could not import pexpect.replwrap: {str(e)}")
+        print(
+            f"  Need pexpect version 3.3, installed version: {str(pexpect.__version__)}"
+        )
+        print(f"  pexpect location: {str(pexpect.__file__)}")
         exit(1)
 
     '''Patch the existing run command'''
@@ -107,26 +108,26 @@ try:
     from thrift.protocol import TBinaryProtocol
 except ImportError as e:
     print("Cannot import thrift: pip install thrift?")
-    print(str(e))
+    print(e)
     exit(1)
 
 
 def getUserId():
-    if os.name == "nt":
-        return getpass.getuser()
-    return "%d" % os.getuid()
+    return getpass.getuser() if os.name == "nt" else "%d" % os.getuid()
 
 
 '''Defaults that should be used in integration tests.'''
+
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-TEMP_DIR = os.path.join(tempfile.gettempdir(),
-                          "osquery-tests-python-%s" % (getUserId()))
+TEMP_DIR = os.path.join(
+    tempfile.gettempdir(), f"osquery-tests-python-{getUserId()}"
+)
 TEMP_NAME = os.path.join(TEMP_DIR, "tests")
 DEFAULT_CONFIG = {
     "options": {
         "flagfile": "/dev/null" if os.name == "posix" else "",
         "config_path": "/dev/null" if os.name == "posix" else "",
-        "pidfile": "%s.pid" % TEMP_NAME,
+        "pidfile": f"{TEMP_NAME}.pid",
         "extensions_autoload": "/dev/null" if os.name == "posix" else "",
         "extensions_socket": "/dev/null" if os.name == "posix" else "",
         "disable_database": "true",
@@ -136,7 +137,7 @@ DEFAULT_CONFIG = {
         "force": "true",
         "watchdog_level": "3",
     },
-    "schedule": {}
+    "schedule": {},
 }
 
 '''Expect CONFIG to be set during Tester.main() to a python dict.'''
@@ -166,8 +167,9 @@ class OsqueryWrapper(REPLWrapper):
         options = copy.deepcopy(CONFIG)["options"]
         for option in args.keys():
             options[option] = args[option]
-        command = command + " " + " ".join(
-            ["--%s=%s" % (k, v) for k, v in options.items()])
+        command = f"{command} " + " ".join(
+            [f"--{k}={v}" for k, v in options.items()]
+        )
         if os.name == "nt":
             proc = WinExpectSpawn(command, env=env, cwd=TEST_CONFIGS_DIR)
         else:
@@ -185,7 +187,7 @@ class OsqueryWrapper(REPLWrapper):
         When unknown output is encountered, OsqueryUnknownException is thrown.
         When osqueryi returns an error, OsqueryException is thrown.
         '''
-        query = query + ';'  # Extra semicolon causes no harm
+        query = f'{query};'
         result = self.run_command(query).decode('utf-8')
         # On Mac, the query appears first in the string. Remove it if so.
         result = re.sub(re.escape(query), '', result).strip()
@@ -201,9 +203,9 @@ class OsqueryWrapper(REPLWrapper):
             if len(l) == 0 or l[0] != '+':
                 # This is not a result line
                 noise += 1
-            elif l[0] == '+':
+            else:
                 break
-        for l in range(noise):
+        for _ in range(noise):
             result_lines.pop(0)
 
         try:
@@ -214,8 +216,7 @@ class OsqueryWrapper(REPLWrapper):
                 if len(line) > 0 and line[0] == '+':
                     continue
                 values = re.findall('[^ |]+', line)
-                rows.append(
-                    dict((col, val) for col, val in zip(columns, values)))
+                rows.append(dict(zip(columns, values)))
             return rows
         except:
             raise OsqueryUnknownException(
@@ -253,8 +254,8 @@ class ProcRunner(object):
                 self.proc = subprocess.Popen([self.path] + self.args)
             self.started = True
         except Exception as e:
-            print(utils.red("Process start failed:") + " %s" % self.name)
-            print(str(e))
+            print(utils.red("Process start failed:") + f" {self.name}")
+            print(e)
             sys.exit(1)
         try:
             while self.proc.poll() is None:
@@ -325,9 +326,7 @@ class ProcRunner(object):
                 break
             time.sleep(self.interval)
             attempt += 1
-        if self.proc is None:
-            return False
-        return self.proc.poll() is None
+        return False if self.proc is None else self.proc.poll() is None
 
     def isDead(self, pid, attempts=10):
         self.requireStarted()
@@ -352,15 +351,21 @@ class ProcRunner(object):
 def getLatestOsqueryBinary(binary):
 
     if os.name == "nt":
-        normal_release_path = os.path.abspath(os.path.join(BUILD_DIR, "osquery", "{}.exe".format(binary)))
+        normal_release_path = os.path.abspath(
+            os.path.join(BUILD_DIR, "osquery", f"{binary}.exe")
+        )
 
         if os.path.exists(normal_release_path):
             return normal_release_path
 
         msbuild_release_path = os.path.abspath(
-        os.path.join(BUILD_DIR, "osquery", "Release", "{}.exe".format(binary)))
+            os.path.join(BUILD_DIR, "osquery", "Release", f"{binary}.exe")
+        )
         msbuild_relwithdebinfo_path = os.path.abspath(
-            os.path.join(BUILD_DIR, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
+            os.path.join(
+                BUILD_DIR, "osquery", "RelWithDebInfo", f"{binary}.exe"
+            )
+        )
 
         if os.path.exists(msbuild_release_path) and os.path.exists(msbuild_relwithdebinfo_path):
             if os.stat(msbuild_release_path).st_mtime > os.stat(
@@ -401,7 +406,7 @@ class ProcessGenerator(object):
                 TEMP_DIR, "config-%d.json" % (random.randint(1000, 9999)))
         for option in options.keys():
             config["options"][option] = options[option]
-        flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
+        flags = [f"--{k}={v}" for k, v in config["options"].items()]
         for option in options_only.keys():
             config["options"][option] = options_only[option]
         for key in overwrite:
@@ -425,13 +430,15 @@ class ProcessGenerator(object):
             config["options"]["extensions_socket"] = path
         extension = ProcRunner(
             "extension",
-            binary, [
-                "--socket=%s" % config["options"]["extensions_socket"],
+            binary,
+            [
+                f'--socket={config["options"]["extensions_socket"]}',
                 "--verbose" if not silent else "",
                 "--timeout=%d" % timeout,
                 "--interval=%d" % 0,
             ],
-            silent=silent)
+            silent=silent,
+        )
         self.generators.append(extension)
         extension.options = config["options"]
         return extension
@@ -469,7 +476,7 @@ class EXClient(object):
             path = CONFIG["options"]["extensions_socket"]
         self.path = path
         if uuid:
-            self.path += ".%s" % str(uuid)
+            self.path += f".{str(uuid)}"
         transport = TSocket.TSocket(unix_socket=self.path)
         transport = TTransport.TBufferedTransport(transport)
         self.protocol = TBinaryProtocol.TBinaryProtocol(transport)
@@ -495,7 +502,7 @@ class EXClient(object):
     def open(self, attempts=10, interval=0.5):
         '''Attempt to open the UNIX domain socket.'''
         delay = 0
-        for i in range(0, attempts):
+        for _ in range(0, attempts):
             try:
                 self.transport.open()
                 return True
@@ -523,8 +530,7 @@ class Autoloader(object):
 
     def __init__(self, autoloads=[]):
         global TEMP_DIR
-        self.path = os.path.join(TEMP_DIR,
-                                 "ext.load" + str(random.randint(1000, 9999)))
+        self.path = os.path.join(TEMP_DIR, f"ext.load{random.randint(1000, 9999)}")
         with open(self.path, "w") as fh:
             fh.write("\n".join(autoloads))
 
@@ -539,7 +545,7 @@ class TimeoutRunner(object):
     def __init__(self, cmd=[], timeout_sec=1):
         global CONFIG
         options = copy.deepcopy(CONFIG)["options"]
-        args = ["--%s=%s" % (k, v) for k, v in options.items()]
+        args = [f"--{k}={v}" for k, v in options.items()]
         cmd = [cmd[0]] + args + cmd[1:]
 
         self.stdout = None
@@ -569,9 +575,7 @@ class SelectedTestLoader(unittest.TestLoader):
         super().__init__()
 
     def getTestCaseNames(self, testCaseClass):
-        testcases = self.input_testcases.split(',')
-
-        return testcases
+        return self.input_testcases.split(',')
 
 class Tester(object):
     def __init__(self):
@@ -612,7 +616,7 @@ class Tester(object):
         ARGS = parser.parse_args()
 
         if not os.path.exists(ARGS.build):
-            print("Cannot find --build: %s" % ARGS.build)
+            print(f"Cannot find --build: {ARGS.build}")
             print("You must first run: make")
             exit(1)
 
@@ -648,8 +652,7 @@ def expect(functional, expected, interval=0.01, timeout=4):
             if len(result) == expected:
                 break
         except Exception as e:
-            print("Expect exception (%s): %s not %s" %
-                  (str(e), str(functional), expected))
+            print(f"Expect exception ({str(e)}): {str(functional)} not {expected}")
             return None
         if delay >= timeout:
             return None
@@ -689,14 +692,13 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             self.assertEqual(result.status.code, 0)
             return result.response
         except Exception as e:
-            print("General exception executing query: %s (%s)" %
-                  (utils.lightred(query), str(e)))
+            print(f"General exception executing query: {utils.lightred(query)} ({str(e)})")
             raise e
 
     def _execute_set(self, queries):
         for example in queries:
             start_time = time.time()
-            print("Query: %s ..." % (example), end='')
+            print(f"Query: {example} ...", end='')
             sys.stdout.flush()
 
             result = self._execute(example)
@@ -741,7 +743,7 @@ def assertPermissions():
 
 
 def getTestDirectory(base):
-    path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
+    path = os.path.join(base, f"test-dir{random.randint(1000, 9999)}")
     utils.reset_dir(path)
     return path
 
@@ -753,5 +755,5 @@ def loadThriftFromBuild(build_dir):
         EXClient.setUp(ExtensionManager, Extension)
     except ImportError as e:
         print("Cannot import osquery thrift API")
-        print("Exception: %s" % (str(e)))
+        print(f"Exception: {str(e)}")
         exit(1)

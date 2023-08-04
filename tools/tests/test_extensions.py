@@ -216,7 +216,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_extensions_autoload(self):
         loader = test_base.Autoloader(
-            [test_base.ARGS.build + "/osquery/example_extension.ext"])
+            [f"{test_base.ARGS.build}/osquery/example_extension.ext"]
+        )
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "extensions_timeout": EXTENSION_TIMEOUT,
@@ -237,8 +238,10 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill(True)
 
     def test_extensions_directory_autoload(self):
-        utils.copy_file(test_base.ARGS.build + "/osquery/example_extension.ext",
-            test_base.CONFIG_DIR)
+        utils.copy_file(
+            f"{test_base.ARGS.build}/osquery/example_extension.ext",
+            test_base.CONFIG_DIR,
+        )
         loader = test_base.Autoloader([test_base.CONFIG_DIR])
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -261,7 +264,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_extensions_autoload_watchdog(self):
         loader = test_base.Autoloader(
-            [test_base.ARGS.build + "/osquery/example_extension.ext"])
+            [f"{test_base.ARGS.build}/osquery/example_extension.ext"]
+        )
         daemon = self._run_daemon({
             "extensions_timeout": EXTENSION_TIMEOUT,
             "extensions_autoload": loader.path,
@@ -282,7 +286,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_external_config(self):
         loader = test_base.Autoloader(
-            [test_base.ARGS.build + "/osquery/example_extension.ext"])
+            [f"{test_base.ARGS.build}/osquery/example_extension.ext"]
+        )
         daemon = self._run_daemon({
             "extensions_autoload": loader.path,
             "extensions_timeout": EXTENSION_TIMEOUT,
@@ -352,7 +357,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_extensions_settings(self):
         loader = test_base.Autoloader(
-            [test_base.ARGS.build + "/osquery/example_extension.ext"])
+            [f"{test_base.ARGS.build}/osquery/example_extension.ext"]
+        )
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "extensions_timeout": EXTENSION_TIMEOUT,

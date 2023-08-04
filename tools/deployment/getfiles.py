@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     commands_path = os.path.join(args.build, "compile_commands.json")
     if not os.path.exists(commands_path):
-        print("Cannot find '%s'" % (commands_path))
+        print(f"Cannot find '{commands_path}'")
         exit(1)
 
     with open(commands_path, 'r') as fh: content = fh.read()
@@ -46,4 +46,3 @@ if __name__ == "__main__":
         if file['file'].find("gtest") > 0:
             continue
         print(file['file'])
-        pass

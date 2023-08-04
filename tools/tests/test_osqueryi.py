@@ -38,13 +38,15 @@ class OsqueryiTest(unittest.TestCase):
 
     def test_config_check_success(self):
         '''Test that a 0-config passes'''
-        proc = test_base.TimeoutRunner([
-            self.binary,
-            "--config_check",
-            "--config_path=%s" % configFile("test.config"),
-            "--verbose",
-        ],
-            SHELL_TIMEOUT)
+        proc = test_base.TimeoutRunner(
+            [
+                self.binary,
+                "--config_check",
+                f'--config_path={configFile("test.config")}',
+                "--verbose",
+            ],
+            SHELL_TIMEOUT,
+        )
         self.assertEqual(proc.stdout, b"")
         print(proc.stdout)
         print(proc.stderr)
@@ -53,13 +55,10 @@ class OsqueryiTest(unittest.TestCase):
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
         config = configFile("test_noninline_packs.conf")
-        proc = test_base.TimeoutRunner([
-                self.binary,
-                "--config_dump",
-                "--config_path=%s" % config,
-                "--verbose",
-            ],
-            SHELL_TIMEOUT)
+        proc = test_base.TimeoutRunner(
+            [self.binary, "--config_dump", f"--config_path={config}", "--verbose"],
+            SHELL_TIMEOUT,
+        )
         content = ""
         with open(config, 'r') as fh:
             content = fh.read()
@@ -88,13 +87,15 @@ class OsqueryiTest(unittest.TestCase):
 
     def test_config_check_failure_valid_path(self):
         # Now with a valid path, but invalid content.
-        proc = test_base.TimeoutRunner([
-            self.binary,
-            "--config_check",
-            "--verbose",
-            "--config_path=%s" % configFile("test.badconfig"),
-        ],
-            SHELL_TIMEOUT)
+        proc = test_base.TimeoutRunner(
+            [
+                self.binary,
+                "--config_check",
+                "--verbose",
+                f'--config_path={configFile("test.badconfig")}',
+            ],
+            SHELL_TIMEOUT,
+        )
         self.assertEqual(proc.proc.poll(), 1)
         self.assertNotEqual(proc.stderr, "")
 
@@ -114,13 +115,15 @@ class OsqueryiTest(unittest.TestCase):
 
     def test_config_check_example(self):
         '''Test that the example config passes'''
-        proc = test_base.TimeoutRunner([
+        proc = test_base.TimeoutRunner(
+            [
                 self.binary,
                 "--config_check",
-                "--config_path=%s" % configFile("osquery.example.conf"),
+                f'--config_path={configFile("osquery.example.conf")}',
                 "--verbose",
             ],
-            SHELL_TIMEOUT)
+            SHELL_TIMEOUT,
+        )
         self.assertEqual(proc.stdout, b"")
         print (proc.stdout)
         print (proc.stderr)
@@ -169,7 +172,6 @@ class OsqueryiTest(unittest.TestCase):
         ]
         for command in commands:
             result = self.osqueryi.run_command(command)
-        pass
 
     def test_json_output(self):
         '''Test that the output of --json is valid json'''

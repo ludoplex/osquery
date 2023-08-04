@@ -13,9 +13,7 @@ def allowed_platform(qp):
 
     curr_platform = utils.platform()
 
-    if (curr_platform == "linux" or curr_platform == "darwin") and qp.find(
-        "posix"
-    ) >= 0:
+    if curr_platform in ["linux", "darwin"] and qp.find("posix") >= 0:
         return True
 
     return qp.find(curr_platform) >= 0
@@ -24,7 +22,7 @@ def allowed_platform(qp):
 class QueryPacksTests(test_base.QueryTester):
     def test_pack_queries(self):
         packs = {}
-        PACKS_DIR = test_base.TEST_CONFIGS_DIR + "/packs"
+        PACKS_DIR = f"{test_base.TEST_CONFIGS_DIR}/packs"
         print(PACKS_DIR)
         for root, dirs, files in os.walk(PACKS_DIR):
             for name in files:
@@ -39,7 +37,7 @@ class QueryPacksTests(test_base.QueryTester):
             if "platform" in pack and not allowed_platform(pack["platform"]):
                 continue
 
-            print("Executing queries in pack: %s" % name)
+            print(f"Executing queries in pack: {name}")
 
             queries = []
             for query_name, query in pack["queries"].items():

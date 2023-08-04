@@ -25,15 +25,11 @@ DEBUG = False
 
 
 def parseCVEFromTitle(title: str):
-    match = match_cve.search(title)
-    if match:
-        return match.group(1)
-    else:
-        return None
+    return match.group(1) if (match := match_cve.search(title)) else None
 
 
 def print_err(message: str):
-    print("Error: " + message, file=sys.stderr)
+    print(f"Error: {message}", file=sys.stderr)
 
 
 def getCVES(
@@ -50,11 +46,10 @@ def getCVES(
         try:
             if version is not None:
                 nist_cves = nvdlib.searchCVE(
-                    cpeMatchString="cpe:2.3:a:%s:%s:%s:*:*:*:*:*:*:*" % (vendor, product, version),
+                    cpeMatchString=f"cpe:2.3:a:{vendor}:{product}:{version}:*:*:*:*:*:*:*",
                     sortPublished=True,
                     key=api_key,
                 )
-                break
             else:
                 # Some libraries have a version that corresponds to a date,
                 # so we search for CVEs published in the window of time
@@ -69,7 +64,7 @@ def getCVES(
                     end_date = start_date + timedelta(days=120)
 
                     cves = nvdlib.searchCVE(
-                        cpeMatchString="cpe:2.3:a:%s:%s:*:*:*:*:*:*:*:*" % (vendor, product),
+                        cpeMatchString=f"cpe:2.3:a:{vendor}:{product}:*:*:*:*:*:*:*:*",
                         sortPublished=True,
                         pubStartDate=start_date,
                         pubEndDate=end_date,
@@ -79,8 +74,7 @@ def getCVES(
                     start_date = end_date
                     nist_cves.extend(cves)
 
-                break
-
+            break
         except Exception as e:
             if DEBUG:
                 print(f"Error searching CVE for library {library_name}: {e}. Retrying")
@@ -215,7 +209,7 @@ for library_name, library_metadata in libraries.items():
         continue
 
     # Skip if we want to check a specific set of libraries and this is not in it
-    if len(libraries_to_check) > 0:
+    if libraries_to_check:
         if library_name not in libraries_to_check:
             continue
 
@@ -281,7 +275,7 @@ for library_name, library_metadata in libraries.items():
 
     cves_per_library.append({"name": library_name, "cves": cves})
 
-if len(cves_per_library) == 0:
+if not cves_per_library:
     exit(0)
 
 # Always print the cves that have been found
@@ -303,10 +297,10 @@ for library in cves_per_library:
         else:
             ignored_cves_messages.append(f"\t Name: {cve.name}\tSeverity: {cve.severity}")
 
-    if len(cves_messages) > 0:
+    if cves_messages:
         libraries_with_cves.append((library["name"], cves_messages))
 
-    if len(ignored_cves_messages) > 0:
+    if ignored_cves_messages:
         libraries_with_ignored_cves.append((library["name"], ignored_cves_messages))
 
 for library in libraries_with_cves:

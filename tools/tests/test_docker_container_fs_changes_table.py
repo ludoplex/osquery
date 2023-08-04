@@ -39,7 +39,7 @@ class FsChangesTableTest(unittest.TestCase):
             print("WARNING: Issue in creating test docker container; Skipping docker_container_fs_changes table testing")
             return
 
-        query = "select * from docker_container_fs_changes where id = '" + self.container.id + "';"
+        query = f"select * from docker_container_fs_changes where id = '{self.container.id}';"
         result = self.osqueryi.run_query(query)
         self.assertTrue(len(result) > 0)
         self.assertTrue(any(row["id"] == self.container.id and row["path"] == "/xxx" and row["change_type"] == 'A' for row in result))
